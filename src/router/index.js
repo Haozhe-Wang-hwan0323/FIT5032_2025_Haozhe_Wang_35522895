@@ -12,6 +12,11 @@ const routes = [
     component: LoginPage
   },
   {
+    path: '/register',
+    name: 'Register',
+    component: RegisterPage
+  },
+  {
     path: '/user-home',
     name: 'UserHome',
     component: UserHomePage,
@@ -34,19 +39,19 @@ router.beforeEach(async (to, from, next) => {
   const requiresAuth = to.meta.requiresAuth;
   const allowedRoles = to.meta.allowedRoles;
   const userRole = localStorage.getItem('userRole');
-  
-  // Check wwheter to verify
+
+  // Check whether to verify
   if (requiresAuth) {
     const user = auth.currentUser;
     if (!user) {
       return next('/');
     }
-  
+
     if (allowedRoles && !allowedRoles.includes(userRole)) {
       return next(userRole === 'admin' ? '/admin-home' : '/user-home');
     }
   }
-  
+
   next();
 });
 

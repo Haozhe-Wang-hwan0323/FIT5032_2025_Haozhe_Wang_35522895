@@ -23,13 +23,20 @@
           </div>
           <div class="mb-3">
             <label class="form-label">UserType</label>
-            <select v-model="registerForm.role" class="form-control">
+            <select v-model="registerForm.role" class="form-control" @change="checkAdminCodeVisibility">
               <option value="elderly">Elderly</option>
               <option value="admin">Admin</option>
             </select>
           </div>
+          <div v-if="showAdminCodeInput" class="mb-3">
+            <label class="form-label">Admin Code</label>
+            <input v-model="adminCode" type="text" class="form-control">
+            <div v-if="!isValidAdminCode && adminCode" class="text-danger">
+              Invalid admin code.
+            </div>
+          </div>
           <button type="submit" class="btn btn-success" 
-                  :disabled="!isValidRegisterEmail || !isValidRegisterPassword">
+                  :disabled="!isValidRegisterEmail || !isValidRegisterPassword || (showAdminCodeInput && !isValidAdminCode)">
             Register!
           </button>
         </form>
@@ -53,6 +60,8 @@ import { doc, setDoc } from 'firebase/firestore';
 
 const router = useRouter();
 const errorMessage = ref('');
+const adminCode = ref('');
+const showAdminCodeInput = ref(false);
 
 // registerForm
 const registerForm = ref({
@@ -71,9 +80,17 @@ const isValidRegisterPassword = computed(() => {
   return registerForm.value.password.length >= 6;
 });
 
+const isValidAdminCode = computed(() => {
+  return registerForm.value.role === 'admin' ? adminCode.value === 'hwan0323@student.monash.edu' : true;
+});
+
+const checkAdminCodeVisibility = () => {
+  showAdminCodeInput.value = registerForm.value.role === 'admin';
+};
+
 // handleRegister
 const handleRegister = async () => {
-  if (!isValidRegisterEmail.value || !isValidRegisterPassword.value) return;
+  if (!isValidRegisterEmail.value || !isValidRegisterPassword.value || (showAdminCodeInput.value && !isValidAdminCode.value)) return;
   
   try {
     // Create Firebase Auth user
@@ -99,5 +116,4 @@ const handleRegister = async () => {
 </script>
 
 <style scoped>
-
 </style>

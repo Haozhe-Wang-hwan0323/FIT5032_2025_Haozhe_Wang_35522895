@@ -66,7 +66,6 @@
 
       <div class="bg-white rounded-2xl shadow-xl p-8 mb-8 border-2 border-gray-200">
         <div class="bg-gradient-to-r from-primary to-primary-dark rounded-xl p-8 mb-12 shadow-md">
-          <h2 class="text-[clamp(1.8rem,4vw,3rem)] font-bold text-white mb-4">Welcome back, Mr. Chen</h2>
         </div>
 
         <div class="row g-8">

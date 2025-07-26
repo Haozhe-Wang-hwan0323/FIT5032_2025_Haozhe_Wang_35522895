@@ -8,6 +8,7 @@
             <i class="fa fa-bars"></i>
           </button>
         </div>
+        
         <div class="d-none d-md-flex flex-wrap justify-center gap-3">
           <router-link 
             to="/admin-home" 
@@ -23,7 +24,7 @@
           </router-link>
           <router-link 
             to="/resource-management" 
-            class="nav-link px-4 py-2 rounded-lg hover:bg-primary/10 text-gray-600 hover:text-primary font-medium text-lg transition-colors"
+            class="nav-link active px-4 py-2 rounded-lg bg-primary/10 text-primary font-medium text-lg"
           >
             Resource Library Management
           </router-link>
@@ -48,15 +49,13 @@
         </div>
       </div>
     </nav>
+
     <main class="container mx-auto px-4 pt-50 pb-16 flex-grow">
       <div class="bg-white rounded-2xl shadow-xl p-8 mb-8 border-2 border-gray-200">
         <div class="flex justify-between items-center mb-6">
           <h2 class="text-2xl font-bold text-gray-800">Resource Library Management</h2>
           <button @click="openAddResourceModal" class="btn btn-success">
             <i class="fa fa-plus mr-2"></i> Add New Resource
-          </button>
-        <button @click="exportToCSV" class="btn btn-primary">
-            <i class="fa fa-download mr-2"></i> Export to CSV
           </button>
         </div>
         <div class="flex flex-wrap justify-between gap-4 mb-6">
@@ -71,9 +70,10 @@
               <i class="fa fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
             </div>
           </div>
-          
+          <button @click="exportToCSV" class="btn btn-primary">
+            <i class="fa fa-download mr-2"></i> Export to CSV
+          </button>
         </div>
-
         <div class="overflow-x-auto">
           <table class="table table-striped table-hover">
             <thead>
@@ -86,7 +86,7 @@
                   Description 
                   <i class="fa fa-sort ml-1"></i>
                 </th>
-                <th @click="sortBy('rating')" class="cursor-pointer">
+                <th @click="sortBy('averageRating')" class="cursor-pointer">
                   Rating 
                   <i class="fa fa-sort ml-1"></i>
                 </th>
@@ -99,15 +99,16 @@
                 <td>{{ resource.description }}</td>
                 <td>
                   <div class="rating-stars">
-                    <span class="mr-2 font-medium">{{ resource.rating.toFixed(1) }}</span>
+                    <span class="mr-2 font-medium">{{ resource.averageRating.toFixed(1) }}</span>
                     <div class="flex">
                       <i 
                         v-for="i in 5" 
                         :key="i" 
                         class="fa fa-star text-yellow-400"
-                        :class="{ 'text-gray-300': i > resource.rating }"
+                        :class="{ 'text-gray-300': i > resource.averageRating }"
                       ></i>
                     </div>
+                    <span class="ml-2 text-sm text-gray-500">({{ resource.totalRatings }} ratings)</span>
                   </div>
                 </td>
                 <td class="text-center">
@@ -201,15 +202,17 @@
                   placeholder="Enter valid download URL"
                 >
               </div>
-              <div class="mb-0">
+              <div class="mb-4">
                 <label class="form-label">Default Rating</label>
                 <div class="rating-stars">
                   <div class="flex">
-                    <i class="fa fa-star text-yellow-400"></i>
-                    <i class="fa fa-star text-yellow-400"></i>
-                    <i class="fa fa-star text-yellow-400"></i>
-                    <i class="fa fa-star text-gray-300"></i>
-                    <i class="fa fa-star text-gray-300"></i>
+                    <i 
+                      v-for="i in 5" 
+                      :key="i" 
+                      class="fa fa-star text-yellow-400 cursor-pointer"
+                      @click="newResource.defaultRating = i"
+                      :class="{ 'text-gray-300': i > newResource.defaultRating }"
+                    ></i>
                   </div>
                 </div>
               </div>
@@ -274,7 +277,9 @@ const newResource = ref({
   name: '',
   description: '',
   link: '',
-  rating: 3.0 
+  totalRatings: 1,    
+  sumRatings: 3,     
+  averageRating: 3.0 
 });
 
 const filteredResources = computed(() => {
@@ -283,7 +288,7 @@ const filteredResources = computed(() => {
     .filter(resource => 
       resource.name.toLowerCase().includes(query) ||
       resource.description.toLowerCase().includes(query) ||
-      resource.rating.toString().includes(query)
+      (resource.averageRating && resource.averageRating.toString().includes(query))
     )
     .sort((a, b) => {
       const valueA = a[sortField.value];
@@ -321,9 +326,10 @@ const getResources = async () => {
 
 const addResource = async () => {
   try {
+    newResource.value.averageRating = newResource.value.sumRatings / newResource.value.totalRatings;
+    
     await addDoc(collection(db, 'resources'), {
-      ...newResource.value,
-      rating: parseFloat(newResource.value.rating) 
+      ...newResource.value
     });
     
     resetForm();
@@ -339,7 +345,9 @@ const resetForm = () => {
     name: '',
     description: '',
     link: '',
-    rating: 3.0
+    totalRatings: 1,
+    sumRatings: 3,
+    averageRating: 3.0
   };
 };
 
@@ -358,7 +366,8 @@ const exportToCSV = () => {
   const csvData = resources.value.map(resource => ({
     Name: resource.name,
     Description: resource.description,
-    Rating: resource.rating,
+    AverageRating: resource.averageRating,
+    TotalRatings: resource.totalRatings,
     DownloadLink: resource.link
   }));
   
@@ -413,6 +422,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
+
 .btn-close {
   background: none;
   border: none;

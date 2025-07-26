@@ -3,7 +3,8 @@ import LoginPage from '../components/LoginPage.vue'
 import RegisterPage from '../components/RegisterPage.vue'
 import AdminHomePage from '../components/AdminHomePage.vue'
 import UserHomePage from '../components/UserHomePage.vue'
-import ResourceLibraryManagementPage from '../components/ResourceLibraryManagementPage.vue' // 导入新组件
+import ResourceLibraryManagementPage from '../components/ResourceLibraryManagementPage.vue'
+import ResourceLibraryPage from '../components/ResourceLibraryPage.vue';
 import { auth } from '../firebaseConfig';
 
 const routes = [
@@ -34,9 +35,14 @@ const routes = [
     name: 'ResourceManagement',
     component: ResourceLibraryManagementPage,
     meta: { requiresAuth: true, allowedRoles: ['admin'] }
+  },
+  {
+    path: '/resource',
+    name: 'ResourceLibrary',
+    component: ResourceLibraryPage,
+    meta: { requiresAuth: true, allowedRoles: ['elderly'] }
   }
 ];
-
 const router = createRouter({
   history: createWebHistory(),
   routes

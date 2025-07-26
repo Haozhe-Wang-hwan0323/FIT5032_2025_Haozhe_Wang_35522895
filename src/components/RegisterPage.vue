@@ -1,8 +1,6 @@
 <template>
   <div class="container mt-5">
     <h2>Register Page</h2>
-
-    <!-- Register form -->
     <div class="card">
       <div class="card-body">
         <h4 class="card-title">Register</h4>
@@ -42,7 +40,6 @@
         </form>
       </div>
     </div>
-
     <div v-if="errorMessage" class="alert alert-danger mt-3">
       {{ errorMessage }}
     </div>
@@ -53,24 +50,20 @@
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { auth, db } from '../firebaseConfig';
-import { 
-  createUserWithEmailAndPassword 
-} from 'firebase/auth';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
+import DOMPurify from 'dompurify';
 
 const router = useRouter();
 const errorMessage = ref('');
 const adminCode = ref('');
 const showAdminCodeInput = ref(false);
-
-// registerForm
 const registerForm = ref({
   email: '',
   password: '',
   role: 'elderly'
 });
 
-// registerForm verify
 const isValidRegisterEmail = computed(() => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(registerForm.value.email);
@@ -88,25 +81,22 @@ const checkAdminCodeVisibility = () => {
   showAdminCodeInput.value = registerForm.value.role === 'admin';
 };
 
-// handleRegister
 const handleRegister = async () => {
   if (!isValidRegisterEmail.value || !isValidRegisterPassword.value || (showAdminCodeInput.value && !isValidAdminCode.value)) return;
-  
+  registerForm.value.email = DOMPurify.sanitize(registerForm.value.email);
+  registerForm.value.password = DOMPurify.sanitize(registerForm.value.password);
+  adminCode.value = DOMPurify.sanitize(adminCode.value);
   try {
-    // Create Firebase Auth user
     const userCredential = await createUserWithEmailAndPassword(
       auth, 
       registerForm.value.email, 
       registerForm.value.password
     );
-    
-    // Store the user in Firestore 
     await setDoc(doc(db, 'users', userCredential.user.uid), {
       email: registerForm.value.email,
       role: registerForm.value.role,
       createdAt: new Date()
     });
-    
     alert('Register is complete. You can now log in.');
     router.push('/');
   } catch (error) {

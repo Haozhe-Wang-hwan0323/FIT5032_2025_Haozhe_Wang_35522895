@@ -1,8 +1,6 @@
 <template>
   <div class="container mt-5">
     <h2>Login Page</h2>
-
-    <!-- login form -->
     <div class="card mb-4">
       <div class="card-body">
         <h4 class="card-title">Login</h4>
@@ -28,9 +26,7 @@
         </form>
       </div>
     </div>
-
     <p>Don't have an account? <router-link to="/register">Register here</router-link></p>
-
     <div v-if="errorMessage" class="alert alert-danger mt-3">
       {{ errorMessage }}
     </div>
@@ -41,21 +37,17 @@
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { auth, db } from '../firebaseConfig';
-import { 
-  signInWithEmailAndPassword 
-} from 'firebase/auth';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
+import DOMPurify from 'dompurify';
 
 const router = useRouter();
 const errorMessage = ref('');
-
-// loginForm
 const loginForm = ref({
   email: '',
   password: ''
 });
 
-// loginForm verify
 const isValidEmail = computed(() => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(loginForm.value.email);
@@ -65,24 +57,20 @@ const isValidPassword = computed(() => {
   return loginForm.value.password.length >= 6;
 });
 
-// handleLogin
 const handleLogin = async () => {
   if (!isValidEmail.value || !isValidPassword.value) return;
-  
+  loginForm.value.email = DOMPurify.sanitize(loginForm.value.email);
+  loginForm.value.password = DOMPurify.sanitize(loginForm.value.password);
   try {
     const userCredential = await signInWithEmailAndPassword(
       auth, 
       loginForm.value.email, 
       loginForm.value.password
     );
-    
-    // get user from firestore
     const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
     if (userDoc.exists()) {
       const userData = userDoc.data();
       localStorage.setItem('userRole', userData.role);
-      
-      // router based on user role
       if (userData.role === 'admin') {
         router.push('/admin-home');
       } else {
@@ -98,5 +86,4 @@ const handleLogin = async () => {
 </script>
 
 <style scoped>
-
 </style>

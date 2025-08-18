@@ -29,10 +29,10 @@
             Resource Library Management
           </router-link>
           <router-link 
-            to="/lecture-management" 
-            class="nav-link px-4 py-2 rounded-lg hover:bg-primary/10 text-gray-600 hover:text-primary font-medium text-lg transition-colors"
+            to="/admin-dashboard" 
+            class="nav-link active px-4 py-2 rounded-lg bg-primary/10 text-primary font-medium text-lg"
           >
-            Health Lecture Management
+            Admin Dashboard
           </router-link>
           <router-link 
             to="/admin-about" 

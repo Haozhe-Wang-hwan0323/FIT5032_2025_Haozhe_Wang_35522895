@@ -35,7 +35,7 @@
             Admin Dashboard
           </router-link>
           <router-link 
-            to="/admin-about" 
+            to="/about" 
             class="nav-link px-4 py-2 rounded-lg hover:bg-primary/10 text-gray-600 hover:text-primary font-medium text-lg transition-colors"
           >
             About Us

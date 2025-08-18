@@ -7,6 +7,7 @@ import ResourceLibraryManagementPage from '../components/ResourceLibraryManageme
 import ResourceLibraryPage from '../components/ResourceLibraryPage.vue';
 import { auth } from '../firebaseConfig';
 import Dashboard from '../components/dashboard.vue'
+import aboutus from '../components/aboutus.vue'
 
 const routes = [
   {
@@ -14,10 +15,18 @@ const routes = [
     name: 'Login',
     component: LoginPage
   },
+
+
   {
     path: '/register',
     name: 'Register',
     component: RegisterPage
+  },
+
+  {
+    path: '/about',
+    name: 'about',
+    component: aboutus
   },
   {
     path: '/user-home',
@@ -49,6 +58,8 @@ const routes = [
     component: Dashboard,
      meta: { requiresAuth: true, allowedRoles: ['admin'] }
   }
+
+
 ];
 const router = createRouter({
   history: createWebHistory(),

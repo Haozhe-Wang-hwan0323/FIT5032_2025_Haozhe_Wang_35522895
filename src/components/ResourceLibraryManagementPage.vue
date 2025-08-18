@@ -70,9 +70,14 @@
               <i class="fa fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
             </div>
           </div>
-          <button @click="exportToCSV" class="btn btn-primary">
-            <i class="fa fa-download mr-2"></i> Export to CSV
-          </button>
+          <div class="flex gap-2">
+            <button @click="exportToCSV" class="btn btn-primary">
+              <i class="fa fa-download mr-2"></i> Export to CSV
+            </button>
+            <button @click="showEmailModal = true" class="btn btn-secondary">
+              <i class="fa fa-envelope mr-2"></i> Export to Email
+            </button>
+          </div>
         </div>
         <div class="overflow-x-auto">
           <table class="table table-striped table-hover">
@@ -153,6 +158,7 @@
       </div>
     </main>
 
+    <!-- Add Resource Modal -->
     <div class="modal-backdrop" v-if="showAddModal" @click="closeModal" />
     <div 
       class="modal" 
@@ -230,6 +236,56 @@
       </div>
     </div>
 
+    <!-- Email Export Modal -->
+    <div class="modal-backdrop" v-if="showEmailModal" @click="showEmailModal = false" />
+    <div 
+      class="modal" 
+      v-if="showEmailModal"
+      @keydown.escape="showEmailModal = false"
+      role="dialog"
+      aria-labelledby="emailModalLabel"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="emailModalLabel">Export to Email</h5>
+            <button type="button" class="btn-close" @click="showEmailModal = false">
+              <i class="fa fa-times"></i>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-4">
+              <label class="form-label">Recipient Email <span class="text-danger">*</span></label>
+              <input 
+                v-model="recipientEmail" 
+                type="email" 
+                class="form-control" 
+                required
+                placeholder="Enter email address"
+              >
+              <div v-if="!isValidEmail && recipientEmail" class="text-danger text-sm mt-1">
+                Please enter a valid email address
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" @click="showEmailModal = false">
+              Cancel
+            </button>
+            <button 
+              type="button" 
+              class="btn btn-primary" 
+              @click="sendCSVByEmail"
+              :disabled="!isValidEmail"
+            >
+              Send Email
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <footer class="bg-gray-900 text-white py-16 mt-auto">
       <div class="container mx-auto px-4">
         <div class="row justify-content-between align-items-center">
@@ -265,6 +321,7 @@ import { db } from '../firebaseConfig';
 import { collection, addDoc, getDocs, deleteDoc, doc } from 'firebase/firestore';
 import Papa from 'papaparse';
 
+// Resource Management State
 const resources = ref([]);
 const searchQuery = ref('');
 const currentPage = ref(1);
@@ -273,6 +330,13 @@ const sortField = ref('name');
 const sortDirection = ref('asc');
 const showAddModal = ref(false);
 
+// Email Export State
+const showEmailModal = ref(false);
+const recipientEmail = ref('');
+const emailApiUrl = 'https://sendresourcecsv-tsjzaquomz.cn-hongkong.fcapp.run'; // 你的阿里云FC API地址
+const emailSending = ref(false); // 用于控制发送状态
+
+// New Resource Form State
 const newResource = ref({
   name: '',
   description: '',
@@ -282,6 +346,7 @@ const newResource = ref({
   averageRating: 3.0 
 });
 
+// Computed Properties
 const filteredResources = computed(() => {
   const query = searchQuery.value.toLowerCase();
   return resources.value
@@ -312,6 +377,13 @@ const totalPages = computed(() => Math.ceil(totalResources.value / itemsPerPage.
 const startIndex = computed(() => (currentPage.value - 1) * itemsPerPage.value);
 const endIndex = computed(() => Math.min(startIndex.value + itemsPerPage.value, totalResources.value));
 
+// Email Validation
+const isValidEmail = computed(() => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(recipientEmail.value);
+});
+
+// Fetch Resources from Firestore
 const getResources = async () => {
   try {
     const querySnapshot = await getDocs(collection(db, 'resources'));
@@ -324,6 +396,7 @@ const getResources = async () => {
   }
 };
 
+// Add New Resource
 const addResource = async () => {
   try {
     newResource.value.averageRating = newResource.value.sumRatings / newResource.value.totalRatings;
@@ -340,6 +413,7 @@ const addResource = async () => {
   }
 };
 
+// Reset Form
 const resetForm = () => {
   newResource.value = {
     name: '',
@@ -351,6 +425,7 @@ const resetForm = () => {
   };
 };
 
+// Delete Resource
 const deleteResource = async (id) => {
   if (confirm('Are you sure you want to delete this resource? This action cannot be undone.')) {
     try {
@@ -362,15 +437,20 @@ const deleteResource = async (id) => {
   }
 };
 
-const exportToCSV = () => {
-  const csvData = resources.value.map(resource => ({
+// Generate CSV Data (Shared for download and email)
+const generateCSVData = () => {
+  return resources.value.map(resource => ({
     Name: resource.name,
     Description: resource.description,
     AverageRating: resource.averageRating,
     TotalRatings: resource.totalRatings,
     DownloadLink: resource.link
   }));
-  
+};
+
+// Export to Local CSV
+const exportToCSV = () => {
+  const csvData = generateCSVData();
   const csv = Papa.unparse(csvData);
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
@@ -386,6 +466,48 @@ const exportToCSV = () => {
   }
 };
 
+const sendCSVByEmail = async () => {
+  if (!isValidEmail.value) return;
+  
+  emailSending.value = true;
+  try {
+    const csvData = generateCSVData();
+    const csv = Papa.unparse(csvData);
+    
+    const response = await fetch(emailApiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        toEmail: recipientEmail.value,
+        csvContent: csv
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (response.ok) {
+      if (result.success) {
+        alert('CSV has been sent to your email successfully!');
+        showEmailModal.value = false;
+        recipientEmail.value = '';
+      } else {
+        throw new Error(result.error || 'Failed to send email');
+      }
+    } else {
+      throw new Error(`Server error: ${response.status} - ${result.error || 'Unknown error'}`);
+    }
+  } catch (error) {
+    console.error('Error sending email:', error);
+    alert(`Failed to send email: ${error.message}`);
+  } finally {
+    emailSending.value = false;
+  }
+};
+
+// Pagination
 const prevPage = () => {
   if (currentPage.value > 1) {
     currentPage.value--;
@@ -398,6 +520,7 @@ const nextPage = () => {
   }
 };
 
+// Sorting
 const sortBy = (field) => {
   if (sortField.value === field) {
     sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
@@ -407,6 +530,7 @@ const sortBy = (field) => {
   }
 };
 
+// Modal Controls
 const openAddResourceModal = () => {
   resetForm();
   showAddModal.value = true;
@@ -416,6 +540,7 @@ const closeModal = () => {
   showAddModal.value = false;
 };
 
+// Initialize
 onMounted(() => {
   getResources();
 });
